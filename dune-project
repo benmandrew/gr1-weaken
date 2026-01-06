@@ -1,0 +1,26 @@
+(lang dune 3.20)
+
+(name gr1-weaken)
+
+(generate_opam_files true)
+
+(source
+ (github benmandrew/gr1-weaken))
+
+(authors "Ben M. Andrew <benmandrew@gmail.com>")
+
+(maintainers "Ben M. Andrew <benmandrew@gmail.com>")
+
+(license MIT)
+
+(documentation https://url/to/documentation)
+
+(package
+ (name gr1-weaken)
+ (synopsis "A short synopsis")
+ (description "A longer description")
+ (depends ocaml)
+ (tags
+  ("add topics" "to describe" your project)))
+
+; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html

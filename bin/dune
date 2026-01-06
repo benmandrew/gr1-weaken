@@ -1,0 +1,4 @@
+(executable
+ (public_name gr1-weaken)
+ (name main)
+ (libraries gr1_weaken))
