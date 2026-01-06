@@ -2,8 +2,8 @@ open Core
 open Why3
 open Gr1_weaken
 
-(* Example: Create a simple GR(1) specification and convert to Promela *)
-let example_promela () =
+(* Example: Create a simple GR(1) specification and convert to SMV format *)
+let example_smv () =
   (* Create example terms (these would normally come from parsing/analysis) *)
   (* For demonstration, we'll create simple boolean terms *)
   let true_term = Term.t_true in
@@ -15,12 +15,12 @@ let example_promela () =
       ~gnt_liveness:[ true_term ]
   in
 
-  (* Convert to Promela *)
-  print_endline "=== GR(1) Specification in Promela ===";
-  print_endline (Gr1.to_promela spec);
+  (* Convert to SMV fromat *)
+  print_endline "=== GR(1) Specification in SMV ===";
+  print_endline (Gr1.to_smv spec);
   print_endline "\n=== As Single LTL Formula ===";
-  print_endline (Gr1.to_promela_ltl spec)
+  print_endline (Gr1.to_smv_ltl spec)
 
 let () =
   print_endline "GR(1) Weakening Tool\n";
-  example_promela ()
+  example_smv ()

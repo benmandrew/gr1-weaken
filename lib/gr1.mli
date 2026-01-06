@@ -11,25 +11,25 @@ val make :
   gnt_liveness:Term.term list ->
   t
 
-val term_to_promela : ?indent:int -> Term.term -> string
-(** [term_to_promela term] converts a Why3 term to Promela/SPIN syntax.
+val term_to_smv : ?indent:int -> Term.term -> string
+(** [term_to_smv term] converts a Why3 term to SMV LTL syntax.
 
     Supports:
-    - Boolean operators: &&, ||, !, ==>, <=>
-    - Arithmetic operators: +, -, *, /, %
-    - Comparison operators: ==, !=, <, <=, >, >=
-    - LTL operators: [] (always), <> (eventually), X (next), U (until), R
+    - Boolean operators: &, |, !, ->, <->
+    - Arithmetic operators: +, -, *, /, mod
+    - Comparison operators: =, !=, <, <=, >, >=
+    - LTL operators: G (always), F (eventually), X (next), U (until), R
       (release)
     - Variables and constants *)
 
-val to_promela : t -> string
-(** [to_promela t] converts a GR(1) specification to a readable Promela format
-    with separate sections for assumptions and guarantees. *)
+val to_smv : t -> string
+(** [to_smv t] converts a GR(1) specification to a readable SMV format with
+    separate sections for assumptions and guarantees. *)
 
-val to_promela_ltl : t -> string
-(** [to_promela_ltl t] converts a GR(1) specification to a single Promela LTL
-    formula in the form: (assumptions) -> (guarantees)
+val to_smv_ltl : t -> string
+(** [to_smv_ltl t] converts a GR(1) specification to a single SMV LTL formula in
+    the form: (assumptions) -> (guarantees)
 
     The GR(1) formula is structured as:
-    - Assumptions: init ∧ ☐safety ∧ ∧ᵢ ☐◇liveness_i
-    - Guarantees: init ∧ ☐safety ∧ ∧ᵢ ☐◇liveness_i *)
+    - Assumptions: init ∧ G safety ∧ ∧ᵢ G F liveness_i
+    - Guarantees: init ∧ G safety ∧ ∧ᵢ G F liveness_i *)
