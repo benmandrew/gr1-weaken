@@ -1,0 +1,32 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-version: '5.4'
+          opam-version: '2.1'
+
+      - name: Install dependencies
+        run: |
+          opam install . --deps-only -y
+
+      - name: Build the project
+        run: |
+          dune build
+
+      - name: Run tests
+        run: |
+          dune runtest
