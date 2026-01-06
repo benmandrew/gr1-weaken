@@ -3,6 +3,20 @@ open Why3
 
 type check_result = Valid | Invalid of string | Error of string
 
+let model_filename = "model.smv"
+let trace_filename = "trace.xml"
+let commands_filename = "commands.txt"
+
+let commands =
+  [
+    "set on_failure_script_quits 1";
+    "set counter_examples 1";
+    "go";
+    "check_ltlspec";
+    "show_traces -p 4 -o \"" ^ trace_filename ^ "\"";
+    "quit";
+  ]
+
 let get_tmp_dir () =
   let base = Stdlib.Filename.get_temp_dir_name () in
   let dir =
@@ -43,7 +57,17 @@ let collect_vars term =
   in
   aux (Set.empty (module String)) term
 
-let write_model ~path (spec : Gr1.t) =
+let write_commands ~tmp_dir =
+  let buf = Buffer.create 512 in
+  List.iter commands ~f:(fun cmd ->
+      Buffer.(
+        add_string buf cmd;
+        add_string buf "\n"));
+  Out_channel.write_all
+    (Filename.concat tmp_dir commands_filename)
+    ~data:(Buffer.contents buf)
+
+let write_model ~tmp_dir (spec : Gr1.t) =
   let all_terms =
     (Gr1.asm_init spec :: Gr1.gnt_init spec :: Gr1.asm_safety spec)
     @ Gr1.asm_liveness spec @ Gr1.gnt_safety spec @ Gr1.gnt_liveness spec
@@ -62,16 +86,19 @@ let write_model ~path (spec : Gr1.t) =
   Buffer.add_string buf "\nLTLSPEC ";
   Buffer.add_string buf (Gr1.to_smv_ltl spec);
   Buffer.add_char buf '\n';
-  Out_channel.write_all path ~data:(Buffer.contents buf)
+  Out_channel.write_all
+    (Filename.concat tmp_dir model_filename)
+    ~data:(Buffer.contents buf)
 
 let read_file_if_exists path =
   try Some (In_channel.read_all path) with Sys_error _ -> None
 
 let environment = Core_unix.environment ()
 
-let run_nuxmv ~model_path ~workdir =
+let run_nuxmv ~tmp_dir =
   let cmd =
-    sprintf "cd %s && nuXmv -dcx %s" workdir (Filename.basename model_path)
+    sprintf "cd %s && nuXmv -source %s %s" tmp_dir commands_filename
+      model_filename
   in
   try
     let process = Core_unix.open_process_full cmd ~env:environment in
@@ -87,17 +114,16 @@ let run_nuxmv ~model_path ~workdir =
 
 let check spec =
   let tmp_dir = get_tmp_dir () in
-  let model_path = Filename.concat tmp_dir "model.smv" in
-  write_model ~path:model_path spec;
-  match run_nuxmv ~model_path ~workdir:tmp_dir with
+  write_commands ~tmp_dir;
+  write_model ~tmp_dir spec;
+  match run_nuxmv ~tmp_dir with
   | Ok (out, _err) -> (
       if
         String.is_substring out ~substring:"-- specification"
         && String.is_substring out ~substring:"is true"
       then Valid
       else
-        let cx_path = Filename.concat tmp_dir "counterExample.xml" in
-        match read_file_if_exists cx_path with
+        match read_file_if_exists (Filename.concat tmp_dir trace_filename) with
         | Some xml -> Invalid xml
         | None -> Invalid out)
   | Error (status, out, err) ->
