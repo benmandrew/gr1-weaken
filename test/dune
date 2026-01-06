@@ -1,2 +1,3 @@
 (test
- (name test_gr1_weaken))
+ (name test_gr1)
+ (libraries gr1_weaken core why3))

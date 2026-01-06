@@ -1,2 +1,3 @@
 (library
- (name gr1_weaken))
+ (name gr1_weaken)
+ (libraries core why3))
