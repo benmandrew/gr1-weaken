@@ -1,3 +1,6 @@
-(test
+(library
  (name test_gr1)
- (libraries gr1_weaken core why3))
+ (libraries gr1_weaken core why3)
+ (inline_tests)
+ (preprocess
+  (pps ppx_jane)))
