@@ -8,6 +8,14 @@ let make_var name =
   let ty = Ty.ty_bool in
   Term.create_vsymbol id ty
 
+(* Helper to create an atomic proposition (0-arity predicate) *)
+let make_prop name =
+  let id = Ident.id_fresh name in
+  Term.create_psymbol id []
+
+(* Helper to create a proposition term from a predicate symbol *)
+let prop_term ps = Term.ps_app ps []
+
 let%expect_test "boolean constants" =
   print_endline (Gr1.term_to_promela Term.t_true);
   [%expect {| true |}];
@@ -24,48 +32,83 @@ let%expect_test "variables" =
   print_endline (Gr1.term_to_promela term_state);
   [%expect {| state |}]
 
-let%expect_test "logical operators - AND" =
-  let and_term = Term.t_and Term.t_true Term.t_false in
-  print_endline (Gr1.term_to_promela and_term);
-  [%expect {| (true && false) |}]
+(* Tests with atomic propositions *)
 
-let%expect_test "logical operators - OR" =
-  let or_term = Term.t_or Term.t_true Term.t_false in
-  print_endline (Gr1.term_to_promela or_term);
-  [%expect {| (true || false) |}]
+let%expect_test "atomic propositions" =
+  let p = make_prop "p" in
+  let q = make_prop "q" in
+  let p_term = prop_term p in
+  let q_term = prop_term q in
+  print_endline (Gr1.term_to_promela p_term);
+  [%expect {| p |}];
+  print_endline (Gr1.term_to_promela q_term);
+  [%expect {| q |}]
 
-let%expect_test "logical operators - NOT" =
-  let not_term = Term.t_not Term.t_true in
-  print_endline (Gr1.term_to_promela not_term);
-  [%expect {| !(true) |}]
+let%expect_test "propositions with AND" =
+  let p = make_prop "ready" in
+  let q = make_prop "enabled" in
+  let formula = Term.t_and (prop_term p) (prop_term q) in
+  print_endline (Gr1.term_to_promela formula);
+  [%expect {| (ready && enabled) |}]
 
-let%expect_test "logical operators - IMPLIES" =
-  let implies_term = Term.t_implies Term.t_true Term.t_false in
-  print_endline (Gr1.term_to_promela implies_term);
-  [%expect {| (!(true) || false) |}]
+let%expect_test "propositions with OR" =
+  let p = make_prop "req" in
+  let q = make_prop "ack" in
+  let formula = Term.t_or (prop_term p) (prop_term q) in
+  print_endline (Gr1.term_to_promela formula);
+  [%expect {| (req || ack) |}]
 
-let%expect_test "logical operators - IFF" =
-  let iff_term = Term.t_iff Term.t_true Term.t_false in
-  print_endline (Gr1.term_to_promela iff_term);
-  [%expect {| ((true) == (false)) |}]
+let%expect_test "propositions with NOT" =
+  let p = make_prop "busy" in
+  let formula = Term.t_not (prop_term p) in
+  print_endline (Gr1.term_to_promela formula);
+  [%expect {| !(busy) |}]
 
-let%expect_test "nested expressions" =
-  (* (true && false) || true *)
-  let nested = Term.t_or (Term.t_and Term.t_true Term.t_false) Term.t_true in
-  print_endline (Gr1.term_to_promela nested);
-  [%expect {| ((true && false) || true) |}];
-  (* !(true && false) *)
-  let nested2 = Term.t_not (Term.t_and Term.t_true Term.t_false) in
-  print_endline (Gr1.term_to_promela nested2);
-  [%expect {| !((true && false)) |}]
+let%expect_test "propositions with IMPLIES" =
+  let p = make_prop "request" in
+  let q = make_prop "grant" in
+  let formula = Term.t_implies (prop_term p) (prop_term q) in
+  print_endline (Gr1.term_to_promela formula);
+  [%expect {| (!(request) || grant) |}]
+
+let%expect_test "propositions with IFF" =
+  let p = make_prop "ready" in
+  let q = make_prop "done" in
+  let formula = Term.t_iff (prop_term p) (prop_term q) in
+  print_endline (Gr1.term_to_promela formula);
+  [%expect {| ((ready) == (done)) |}]
+
+let%expect_test "complex proposition formula" =
+  let p = make_prop "p" in
+  let q = make_prop "q" in
+  let r = make_prop "r" in
+  (* (p && q) || (!p && r) *)
+  let formula =
+    Term.t_or
+      (Term.t_and (prop_term p) (prop_term q))
+      (Term.t_and (Term.t_not (prop_term p)) (prop_term r))
+  in
+  print_endline (Gr1.term_to_promela formula);
+  [%expect {| ((p && q) || (!(p) && r)) |}]
 
 let%expect_test "GR(1) to Promela conversion" =
+  let req = make_prop "request" in
+  let gnt = make_prop "grant" in
+  let busy = make_prop "busy" in
+  let asm_safety =
+    Term.t_implies (prop_term req) (Term.t_not (prop_term busy))
+  in
+  let gnt_safety =
+    Term.t_implies (prop_term gnt) (Term.t_not (prop_term busy))
+  in
   let spec =
-    Gr1.make ~asm_init:Term.t_true
-      ~asm_safety:[ Term.t_true; Term.t_false ]
-      ~asm_liveness:[ Term.t_true ] ~gnt_init:Term.t_false
-      ~gnt_safety:[ Term.t_true ]
-      ~gnt_liveness:[ Term.t_false; Term.t_true ]
+    Gr1.make
+      ~asm_init:(Term.t_not (prop_term busy))
+      ~asm_safety:[ asm_safety ]
+      ~asm_liveness:[ prop_term req ]
+      ~gnt_init:(Term.t_not (prop_term gnt))
+      ~gnt_safety:[ gnt_safety ]
+      ~gnt_liveness:[ prop_term gnt ]
   in
   print_endline (Gr1.to_promela spec);
   [%expect
@@ -73,24 +116,29 @@ let%expect_test "GR(1) to Promela conversion" =
     /* GR(1) Specification in Promela LTL */
 
     /* Assumptions */
-    asm_init: true
-    asm_safety: true && false
-    asm_liveness: true
+    asm_init: !(busy)
+    asm_safety: (!(request) || !(busy))
+    asm_liveness: request
 
     /* Guarantees */
-    gnt_init: false
-    gnt_safety: true
-    gnt_liveness: false && true |}]
+    gnt_init: !(grant)
+    gnt_safety: (!(grant) || !(busy))
+    gnt_liveness: grant |}]
 
 let%expect_test "GR(1) to LTL formula" =
+  let req = make_prop "request" in
+  let gnt = make_prop "grant" in
   let spec =
-    Gr1.make ~asm_init:Term.t_true ~asm_safety:[ Term.t_true ]
-      ~asm_liveness:[ Term.t_true ] ~gnt_init:Term.t_true
-      ~gnt_safety:[ Term.t_true ] ~gnt_liveness:[ Term.t_true ]
+    Gr1.make ~asm_init:(prop_term req)
+      ~asm_safety:[ Term.t_not (prop_term req) ]
+      ~asm_liveness:[ prop_term req ]
+      ~gnt_init:(Term.t_not (prop_term gnt))
+      ~gnt_safety:[ Term.t_implies (prop_term req) (prop_term gnt) ]
+      ~gnt_liveness:[ prop_term gnt ]
   in
   print_endline (Gr1.to_promela_ltl spec);
   [%expect
-    {| (true && [] (true) && ([] <> (true))) -> (true && [] (true) && ([] <> (true))) |}]
+    {| (request && [] (!(request)) && ([] <> (request))) -> (!(grant) && [] ((!(request) || grant)) && ([] <> (grant))) |}]
 
 let%expect_test "empty lists in GR(1) spec" =
   let spec =
@@ -128,50 +176,20 @@ let%expect_test "single element lists" =
     gnt_init: false
     gnt_liveness: true |}]
 
-let%expect_test "complex GR(1) formula" =
-  (* (true && false) || (false && true) *)
-  let safety1 =
-    Term.t_or
-      (Term.t_and Term.t_true Term.t_false)
-      (Term.t_and Term.t_false Term.t_true)
-  in
-  (* true -> false *)
-  let liveness1 = Term.t_implies Term.t_true Term.t_false in
-  (* Create a deeply nested formula *)
-  let safety2 =
-    Term.t_not (Term.t_or (Term.t_and Term.t_true Term.t_false) Term.t_true)
-  in
-  let spec =
-    Gr1.make ~asm_init:Term.t_true ~asm_safety:[ safety1; safety2 ]
-      ~asm_liveness:[ liveness1 ] ~gnt_init:Term.t_false
-      ~gnt_safety:[ Term.t_true ] ~gnt_liveness:[ Term.t_true ]
-  in
-  print_endline (Gr1.to_promela spec);
-  [%expect
-    {|
-    /* GR(1) Specification in Promela LTL */
-
-    /* Assumptions */
-    asm_init: true
-    asm_safety: ((true && false) || (false && true)) && !(((true && false) || true))
-    asm_liveness: (!(true) || false)
-
-    /* Guarantees */
-    gnt_init: false
-    gnt_safety: true
-    gnt_liveness: true |}]
-
 let%expect_test "temporal operator structure" =
+  let p = make_prop "p" in
+  let q = make_prop "q" in
   let spec =
-    Gr1.make ~asm_init:Term.t_true
-      ~asm_safety:[ Term.t_true; Term.t_false ]
-      ~asm_liveness:[ Term.t_true; Term.t_false ]
-      ~gnt_init:Term.t_true ~gnt_safety:[ Term.t_true ]
-      ~gnt_liveness:[ Term.t_true; Term.t_false ]
+    Gr1.make ~asm_init:(prop_term p)
+      ~asm_safety:[ prop_term p; prop_term q ]
+      ~asm_liveness:[ prop_term p; prop_term q ]
+      ~gnt_init:(prop_term p)
+      ~gnt_safety:[ prop_term p ]
+      ~gnt_liveness:[ prop_term p; prop_term q ]
   in
   print_endline (Gr1.to_promela_ltl spec);
   [%expect
-    {| (true && [] ((true && false)) && ([] <> (true) && [] <> (false))) -> (true && [] (true) && ([] <> (true) && [] <> (false))) |}]
+    {| (p && [] ((p && q)) && ([] <> (p) && [] <> (q))) -> (p && [] (p) && ([] <> (p) && [] <> (q))) |}]
 
 let%expect_test "output format consistency" =
   let spec =
@@ -189,3 +207,36 @@ let%expect_test "output format consistency" =
   (* Test that ltl result has implication arrow *)
   print_s [%sexp (String.is_substring ltl_result ~substring:"->" : bool)];
   [%expect {| true |}]
+
+let%expect_test "mutual exclusion example" =
+  let in_cs1 = make_prop "in_critical_section_1" in
+  let in_cs2 = make_prop "in_critical_section_2" in
+  let req1 = make_prop "request_1" in
+  let req2 = make_prop "request_2" in
+  (* Mutual exclusion: not both in critical section *)
+  let mutex = Term.t_not (Term.t_and (prop_term in_cs1) (prop_term in_cs2)) in
+  (* If request, eventually in critical section *)
+  let liveness1 = Term.t_implies (prop_term req1) (prop_term in_cs1) in
+  let liveness2 = Term.t_implies (prop_term req2) (prop_term in_cs2) in
+  let spec =
+    Gr1.make ~asm_init:Term.t_true ~asm_safety:[]
+      ~asm_liveness:[ prop_term req1; prop_term req2 ]
+      ~gnt_init:
+        (Term.t_and
+           (Term.t_not (prop_term in_cs1))
+           (Term.t_not (prop_term in_cs2)))
+      ~gnt_safety:[ mutex ] ~gnt_liveness:[ liveness1; liveness2 ]
+  in
+  print_endline (Gr1.to_promela spec);
+  [%expect
+    {|
+    /* GR(1) Specification in Promela LTL */
+
+    /* Assumptions */
+    asm_init: true
+    asm_liveness: request_1 && request_2
+
+    /* Guarantees */
+    gnt_init: (!(in_critical_section_1) && !(in_critical_section_2))
+    gnt_safety: !((in_critical_section_1 && in_critical_section_2))
+    gnt_liveness: (!(request_1) || in_critical_section_1) && (!(request_2) || in_critical_section_2) |}]
