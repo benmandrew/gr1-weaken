@@ -35,6 +35,22 @@ jobs:
           key: ${{ runner.os }}-opam-ocaml-5.4-${{ hashFiles('*.opam', '**/*.opam', 'dune-project') }}
           restore-keys: |
             ${{ runner.os }}-opam-ocaml-5.4-
+      - name: Cache nuXmv
+        uses: actions/cache@v4
+        id: cache-nuxmv
+        with:
+          path: ~/nuxmv
+          key: ${{ runner.os }}-nuxmv-2.1.0
+      - name: Install nuXmv
+        if: steps.cache-nuxmv.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/nuxmv
+          cd ~/nuxmv
+          curl -L https://nuxmv.fbk.eu/theme/download.php?file=nuXmv-2.1.0-linux64.tar.xz -o nuxmv.tar.xz
+          tar -xf nuxmv.tar.xz
+          rm nuxmv.tar.xz
+      - name: Add nuXmv to PATH
+        run: echo "$HOME/nuxmv/nuXmv-2.1.0-linux64/bin" >> $GITHUB_PATH
       - name: Set up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
