@@ -26,7 +26,8 @@
   (why3 (>= 1.8.0))
   (core (>= 0.17.0))
   (core_unix (>= 0.17.0))
-  xml-light)
+  xml-light
+  cmdliner)
  (tags
   ("add topics" "to describe" your project)))
 

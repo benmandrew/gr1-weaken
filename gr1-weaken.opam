@@ -16,6 +16,7 @@ depends: [
   "core" {>= "0.17.0"}
   "core_unix" {>= "0.17.0"}
   "xml-light"
+  "cmdliner"
   "odoc" {with-doc}
 ]
 build: [
