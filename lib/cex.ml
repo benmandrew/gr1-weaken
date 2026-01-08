@@ -8,9 +8,9 @@ type 'a lasso = { prefix : 'a list; loop : 'a list }
 
 let parse_bool s =
   match String.uppercase (String.strip s) with
-  | "TRUE" -> true
-  | "FALSE" -> false
-  | other -> invalid_arg (sprintf "Unexpected boolean value: %s" other)
+  | "TRUE" -> Some true
+  | "FALSE" -> Some false
+  | _ -> None
 
 let tag_is name x = String.equal (Xml.tag x) name
 let child_elems x = Xml.children x
@@ -27,10 +27,10 @@ let parse_states_from_xml (nodes : Xml.xml list) : (string * bool) list list =
       | Some st ->
           let values = List.filter (child_elems st) ~f:(tag_is "value") in
           let pairs =
-            List.map values ~f:(fun v ->
+            List.filter_map values ~f:(fun v ->
                 let name = Xml.attrib v "variable" in
                 let data = text_of_element v in
-                (name, parse_bool data))
+                Option.map (parse_bool data) ~f:(fun b -> (name, b)))
           in
           Some pairs)
 

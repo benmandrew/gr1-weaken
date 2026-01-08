@@ -1,26 +1,32 @@
 MODULE main
 
 VAR
-  req   : boolean;   -- env
-  state : {IDLE, BUSY};
+  req     : boolean;           -- environment input
+  state   : {IDLE, BUSY};      -- controller state
+  pending : boolean;           -- auxiliary GR(1) bookkeeping variable
 
 DEFINE
   grant := (state = IDLE) & req;
   busy  := (state = BUSY);
 
 ASSIGN
-  init(state) := IDLE;
+  -- Initial state
+  init(state)   := IDLE;
+  init(pending) := FALSE;
 
+  -- Controller state machine
   next(state) :=
     case
-      state = IDLE & req  : BUSY;
-      state = BUSY       : IDLE;
-      TRUE               : IDLE;
+      state = IDLE & req : BUSY;
+      state = BUSY      : IDLE;
+      TRUE              : IDLE;
     esac;
 
-LTLSPEC GF(!req) -> (
-            G (grant -> (req & !busy)) &
-            G (grant -> X busy) &
-            G (busy -> X !busy) &
-            G (req -> F grant)
-        );
+  -- Pending obligation logic (GR(1) auxiliary variable encoding)
+  next(pending) :=
+    case
+      grant            : FALSE;  -- grant clears obligation
+      req              : TRUE;   -- request creates obligation
+      pending          : TRUE;   -- obligation persists
+      TRUE             : FALSE;
+    esac;

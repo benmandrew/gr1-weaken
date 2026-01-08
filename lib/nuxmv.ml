@@ -39,11 +39,12 @@ let write_commands ~tmp_dir =
 
 let write_model ~tmp_dir model_path spec =
   let tmp_model_path = Filename.concat tmp_dir model_filename in
-  Out_channel.write_all tmp_model_path ~data:(In_channel.read_all model_path);
   let buf = Buffer.create 512 in
   List.iter ~f:(Buffer.add_string buf)
     [ "\nLTLSPEC "; Gr1.to_smv_ltl spec; "\n" ];
-  Out_channel.write_all tmp_model_path ~data:(Buffer.contents buf)
+  Out_channel.with_file tmp_model_path ~f:(fun oc ->
+      Out_channel.output_string oc (In_channel.read_all model_path);
+      Out_channel.output_string oc (Buffer.contents buf))
 
 let read_file_if_exists path =
   try Some (In_channel.read_all path) with Sys_error _ -> None
