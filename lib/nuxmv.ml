@@ -1,5 +1,4 @@
 open Core
-open Why3
 
 type check_result = Valid | Invalid of string | Error of string
 
@@ -28,35 +27,6 @@ let get_tmp_dir () =
   Core_unix.mkdir dir ~perm:0o700;
   dir
 
-let collect_vars term =
-  let rec aux acc t =
-    match t.Term.t_node with
-    | Tvar vs -> Set.add acc vs.vs_name.Ident.id_string
-    | Tconst _ -> acc
-    | Tapp (fs, args) ->
-        let acc' =
-          if List.is_empty args then Set.add acc fs.ls_name.Ident.id_string
-          else acc
-        in
-        List.fold args ~init:acc' ~f:aux
-    | Tif (c, a, b) -> aux (aux (aux acc c) a) b
-    | Tlet (t1, tb) ->
-        let _, body = Term.t_open_bound tb in
-        aux (aux acc t1) body
-    | Tcase (scrut, branches) ->
-        let acc' = aux acc scrut in
-        List.fold branches ~init:acc' ~f:(fun s br ->
-            let _, body = Term.t_open_branch br in
-            aux s body)
-    | Tquant (_, tq) ->
-        let _, _, body = Term.t_open_quant tq in
-        aux acc body
-    | Tbinop (_, a, b) -> aux (aux acc a) b
-    | Tnot t -> aux acc t
-    | Ttrue | Tfalse | Teps _ -> acc
-  in
-  aux (Set.empty (module String)) term
-
 let write_commands ~tmp_dir =
   let buf = Buffer.create 512 in
   List.iter commands ~f:(fun cmd ->
@@ -67,28 +37,13 @@ let write_commands ~tmp_dir =
     (Filename.concat tmp_dir commands_filename)
     ~data:(Buffer.contents buf)
 
-let write_model ~tmp_dir (spec : Gr1.t) =
-  let all_terms =
-    (Gr1.asm_init spec :: Gr1.gnt_init spec :: Gr1.asm_safety spec)
-    @ Gr1.asm_liveness spec @ Gr1.gnt_safety spec @ Gr1.gnt_liveness spec
-  in
-  let vars =
-    List.fold all_terms
-      ~init:(Set.empty (module String))
-      ~f:(fun acc term -> collect_vars term |> Set.union acc)
-    |> Set.to_list
-  in
+let write_model ~tmp_dir model_path spec =
+  let tmp_model_path = Filename.concat tmp_dir model_filename in
+  Out_channel.write_all tmp_model_path ~data:(In_channel.read_all model_path);
   let buf = Buffer.create 512 in
-  Buffer.add_string buf "MODULE main\n";
-  Buffer.add_string buf "VAR\n";
-  List.iter vars ~f:(fun v ->
-      Buffer.add_string buf (sprintf "  %s : boolean;\n" v));
-  Buffer.add_string buf "\nLTLSPEC ";
-  Buffer.add_string buf (Gr1.to_smv_ltl spec);
-  Buffer.add_char buf '\n';
-  Out_channel.write_all
-    (Filename.concat tmp_dir model_filename)
-    ~data:(Buffer.contents buf)
+  List.iter ~f:(Buffer.add_string buf)
+    [ "\nLTLSPEC "; Gr1.to_smv_ltl spec; "\n" ];
+  Out_channel.write_all tmp_model_path ~data:(Buffer.contents buf)
 
 let read_file_if_exists path =
   try Some (In_channel.read_all path) with Sys_error _ -> None
@@ -112,10 +67,10 @@ let run_nuxmv ~tmp_dir =
   with e ->
     Error (127, "", sprintf "Failed to run nuXmv: %s" (Exn.to_string e))
 
-let check spec =
+let check model_path gr1 =
   let tmp_dir = get_tmp_dir () in
   write_commands ~tmp_dir;
-  write_model ~tmp_dir spec;
+  write_model ~tmp_dir model_path gr1;
   match run_nuxmv ~tmp_dir with
   | Ok (out, _err) -> (
       if

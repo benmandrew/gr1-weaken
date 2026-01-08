@@ -1,0 +1,26 @@
+MODULE main
+
+VAR
+  req   : boolean;   -- env
+  state : {IDLE, BUSY};
+
+DEFINE
+  grant := (state = IDLE) & req;
+  busy  := (state = BUSY);
+
+ASSIGN
+  init(state) := IDLE;
+
+  next(state) :=
+    case
+      state = IDLE & req  : BUSY;
+      state = BUSY       : IDLE;
+      TRUE               : IDLE;
+    esac;
+
+LTLSPEC GF(!req) -> (
+            G (grant -> (req & !busy)) &
+            G (grant -> X busy) &
+            G (busy -> X !busy) &
+            G (req -> F grant)
+        );

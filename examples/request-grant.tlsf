@@ -1,0 +1,34 @@
+MAIN {
+  INPUTS {
+    req : boolean;
+  }
+
+  OUTPUTS {
+    grant : boolean;
+    busy : boolean;
+  }
+
+  INITIALLY {
+    TRUE;
+  }
+
+  PRESET {
+  }
+
+  REQUIRE {
+  }
+
+  ASSERT {
+    G (grant -> (req & !busy));
+    G (grant -> X busy);
+    G (busy -> X !busy);
+  }
+
+  ASSUME {
+    G F (!req);
+  }
+
+  GUARANTEE {
+    G (req -> F grant);
+  }
+}
