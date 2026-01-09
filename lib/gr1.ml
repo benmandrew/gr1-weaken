@@ -196,3 +196,14 @@ let to_smv_ltl t =
   let asm_formula = String.concat ~sep:" & " assumptions in
   let gnt_formula = String.concat ~sep:" & " guarantees in
   sprintf "(%s) -> (%s)" asm_formula gnt_formula
+
+let eval t lasso =
+  let length = Lasso.length lasso in
+  for i = 0 to length - 1 do
+    Eval.eval lasso i t.asm_init |> ignore;
+    Eval.eval lasso i t.gnt_init |> ignore;
+    List.map t.asm_safety ~f:(Eval.eval_safety lasso i) |> ignore;
+    List.map t.gnt_safety ~f:(Eval.eval_safety lasso i) |> ignore;
+    List.map t.asm_liveness ~f:(Eval.eval_liveness lasso i) |> ignore;
+    List.map t.gnt_liveness ~f:(Eval.eval_liveness lasso i) |> ignore
+  done

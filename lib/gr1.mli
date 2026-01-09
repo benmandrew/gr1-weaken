@@ -40,3 +40,8 @@ val to_smv_ltl : t -> string
     The GR(1) formula is structured as:
     - Assumptions: init ∧ G safety ∧ ∧ᵢ G F liveness_i
     - Guarantees: init ∧ G safety ∧ ∧ᵢ G F liveness_i *)
+
+val eval : t -> Lasso.t -> unit
+(** [eval spec lasso] evaluates all assumptions and guarantees of the GR(1)
+    specification [spec] against the provided lasso trace [lasso] to fill the
+    lasso's cache. *)

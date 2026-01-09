@@ -18,7 +18,7 @@ let check_tlsf tlsf_path smv_path =
   | Nuxmv.Invalid xml ->
       printf "Specification is INVALID\n";
       let lasso = Cex.parse xml in
-      Eval.eval lasso 0 (Gr1.gnt_liveness spec |> Why3.Term.t_and_l) |> ignore;
+      Gr1.eval spec lasso;
       Lasso.print lasso
   | Nuxmv.Error msg -> printf "Error during verification:\n%s\n" msg
 

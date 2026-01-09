@@ -46,10 +46,11 @@ let eval_liveness lasso i f =
   match Hashtbl.find initial_state (Lasso.Liveness f) with
   | Some v -> v
   | None ->
-      let prefix_len = Lasso.get_prefix_len lasso in
+      let prefix_length = Lasso.prefix_length lasso in
       let loop_states =
         let states = Lasso.get_future_states lasso i in
-        if i < prefix_len then List.drop states (prefix_len - i) else states
+        if i < prefix_length then List.drop states (prefix_length - i)
+        else states
       in
       let res =
         List.exists loop_states ~f:(fun state -> eval_on_state state f)

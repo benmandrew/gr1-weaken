@@ -9,13 +9,17 @@ type property =
 type state = (property, bool) Hashtbl.t
 type t
 
-val get_prefix_len : t -> int
-(** [get_prefix_len lasso] returns the number of states in the prefix of the
+val prefix_length : t -> int
+(** [prefix_length lasso] returns the number of states in the prefix of the
     lasso trace. *)
 
-val get_loop_len : t -> int
-(** [get_loop_len lasso] returns the number of states in the loop of the lasso
+val loop_length : t -> int
+(** [loop_length lasso] returns the number of states in the loop of the lasso
     trace. *)
+
+val length : t -> int
+(** [length lasso] returns the total number of states in the lasso trace,
+    combining both the prefix and loop. *)
 
 val lsymbol_cache : (string, Term.lsymbol) Hashtbl.t
 (** Global cache for Why3 logical symbols. *)
