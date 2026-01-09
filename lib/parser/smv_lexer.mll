@@ -54,7 +54,6 @@ rule token = parse
   | ','            { token lexbuf }  (* Skip comma *)
   | ';'            { token lexbuf }  (* Skip semicolon *)
   (* Identifiers and numbers *)
-  | digit+ as num  { Smv_parser.INT (int_of_string num) }
   | ident as id    { Smv_parser.IDENT id }
   | eof            { Smv_parser.EOF }
   | _              { token lexbuf }  (* Skip unexpected characters *)

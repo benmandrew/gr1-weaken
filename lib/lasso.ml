@@ -14,25 +14,24 @@ end
 type state = (Term.term, bool) Hashtbl.t
 type t = { prefix : state list; loop : state list }
 
-let prop_of cache name =
-  match Hashtbl.find cache name with
+let lsymbol_cache = Hashtbl.create (module String)
+
+let prop_of name =
+  match Hashtbl.find lsymbol_cache name with
   | Some ps -> ps
   | None ->
       let ps = Term.create_psymbol (Ident.id_fresh name) [] in
-      Hashtbl.set cache ~key:name ~data:ps;
+      Hashtbl.set lsymbol_cache ~key:name ~data:ps;
       ps
 
-let lit_of cache (name, value) = (Term.ps_app (prop_of cache name) [], value)
+let lit_of (name, value) = (Term.ps_app (prop_of name) [], value)
 
 let of_states states loop_idx =
   (* Split states into prefix and loop *)
   let state_prefix = List.take states loop_idx in
   let state_loop = List.drop states loop_idx in
-  (* Convert states to terms using shared cache *)
-  let cache = Hashtbl.create (module String) in
   let state_to_term assigns =
-    assigns |> List.map ~f:(lit_of cache) |> Hashtbl.of_alist (module Ts)
-    |> function
+    assigns |> List.map ~f:lit_of |> Hashtbl.of_alist (module Ts) |> function
     | `Duplicate_key _ -> raise (Invalid_argument "Duplicate variable in state")
     | `Ok pair -> pair
   in
@@ -40,6 +39,10 @@ let of_states states loop_idx =
     prefix = List.map state_prefix ~f:state_to_term;
     loop = List.map state_loop ~f:state_to_term;
   }
+
+let get t i =
+  if i < List.length t.prefix then List.nth_exn t.prefix i
+  else List.nth_exn t.loop ((i - List.length t.prefix) mod List.length t.loop)
 
 let get_assignments t =
   t.prefix @ t.loop

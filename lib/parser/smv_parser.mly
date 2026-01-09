@@ -3,16 +3,13 @@
   open Core
   open Why3
 
-  (* Global table to cache variables for consistency *)
-  let variable_cache : (string, 'a) Hashtbl.t = Hashtbl.create (module String)
-
   (* Helper to create or retrieve a propositional symbol *)
   let var_term name =
-    match Hashtbl.find variable_cache name with
+    match Hashtbl.find Lasso.lsymbol_cache name with
     | Some ps -> Term.ps_app ps []
     | None ->
         let ps = Term.create_psymbol (Ident.id_fresh name) [] in
-        Hashtbl.set variable_cache ~key:name ~data:ps;
+        Hashtbl.set Lasso.lsymbol_cache ~key:name ~data:ps;
         Term.ps_app ps []
 
   (* Helper to apply unary operations *)
@@ -49,7 +46,6 @@
 %token EQ NEQ LT LE GT GE
 %token PLUS MINUS MULT DIV MOD
 %token LPAREN RPAREN
-%token <int> INT
 %token <string> IDENT
 %token EOF
 
