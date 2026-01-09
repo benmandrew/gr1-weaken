@@ -4,46 +4,31 @@ MAIN {
   }
 
   OUTPUTS {
-    grant   : boolean;
-    busy    : boolean;
-    pending : boolean;  // auxiliary variable
+    grant : boolean;
+    busy : boolean;
   }
 
   INITIALLY {
-    !pending & !busy;
+    TRUE;
   }
-
+  
   PRESET {
   }
-
+  
   REQUIRE {
   }
-
+  
   ASSERT {
-    // Grant only when requested and not busy
     G (grant -> (req & !busy));
-
-    // Busy lasts exactly one step after grant
     G (grant -> X busy);
-    G (busy  -> X !busy);
-
-    // Request creates a pending obligation
-    G (req -> X pending);
-
-    // Grant clears pending obligation
-    G (grant -> X !pending);
-
-    // Pending persists until cleared
-    G (pending & !grant -> X pending);
+    G (busy -> X !busy);
   }
-
+  
   ASSUME {
-    // Environment justice
     G F (!req);
   }
-
+  
   GUARANTEE {
-    // All pending obligations must be cleared infinitely often
-    G F (!pending);
+    G (req -> F grant);
   }
 }
