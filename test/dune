@@ -1,6 +1,12 @@
 (library
  (name test_gr1)
- (modules test_gr1 test_smv_parser test_tlsf_parser test_cex test_lasso)
+ (modules
+  test_gr1
+  test_smv_parser
+  test_tlsf_parser
+  test_cex
+  test_lasso
+  test_eval)
  (libraries gr1_weaken core why3)
  (inline_tests)
  (preprocess

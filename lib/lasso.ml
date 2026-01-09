@@ -1,17 +1,34 @@
 open Core
 open Why3
 
+type property =
+  | Prop of Term.term
+  | Safety of Term.term
+  | Liveness of Term.term
+
 module Ts = struct
   include Term
 
-  type t = term
+  type t = property
 
-  let compare = Term.t_compare
-  let sexp_of_t t = Core.Sexp.Atom (Format.asprintf "%a" Pretty.print_term t)
-  let hash = Term.t_hash
+  let compare t t' =
+    match (t, t') with
+    | Prop t1, Prop t2 -> Term.t_compare t1 t2
+    | Safety t1, Safety t2 -> Term.t_compare t1 t2
+    | Liveness t1, Liveness t2 -> Term.t_compare t1 t2
+    | Prop _, _ -> -1
+    | _, Prop _ -> 1
+    | Safety _, _ -> -1
+    | _, Safety _ -> 1
+
+  let sexp_of_t = function
+    | Prop t | Safety t | Liveness t ->
+        Core.Sexp.Atom (Format.asprintf "%a" Pretty.print_term t)
+
+  let hash = function Prop t | Safety t | Liveness t -> Term.t_hash t
 end
 
-type state = (Term.term, bool) Hashtbl.t
+type state = (property, bool) Hashtbl.t
 type t = { prefix : state list; loop : state list }
 
 let lsymbol_cache = Hashtbl.create (module String)
@@ -24,7 +41,7 @@ let prop_of name =
       Hashtbl.set lsymbol_cache ~key:name ~data:ps;
       ps
 
-let lit_of (name, value) = (Term.ps_app (prop_of name) [], value)
+let lit_of (name, value) = (Prop (Term.ps_app (prop_of name) []), value)
 
 let of_states states loop_idx =
   (* Split states into prefix and loop *)
@@ -40,16 +57,31 @@ let of_states states loop_idx =
     loop = List.map state_loop ~f:state_to_term;
   }
 
-let get t i =
+let get_state t i =
   if i < List.length t.prefix then List.nth_exn t.prefix i
   else List.nth_exn t.loop ((i - List.length t.prefix) mod List.length t.loop)
+
+let get_future_states t i =
+  if i < List.length t.prefix then
+    let future_prefix = List.drop t.prefix i in
+    future_prefix @ t.loop
+  else
+    let loop_start_idx = (i - List.length t.prefix) mod List.length t.loop in
+    let future_loop = List.drop t.loop loop_start_idx in
+    let wrap_around = List.take t.loop loop_start_idx in
+    future_loop @ wrap_around
 
 let get_assignments t =
   t.prefix @ t.loop
   |> List.map ~f:(fun t ->
       Hashtbl.to_alist t
       |> List.map ~f:(fun (k, v) ->
-          let var_name = Format.asprintf "%a" Pretty.print_term k in
+          let var_name =
+            match k with
+            | Prop term -> Format.asprintf "%a" Pretty.print_term term
+            | Safety term -> Format.asprintf "G %a" Pretty.print_term term
+            | Liveness term -> Format.asprintf "G F %a" Pretty.print_term term
+          in
           (var_name, v)))
 
 let collect_variable_names states =

@@ -1,7 +1,12 @@
 open Core
 open Why3
 
-type state = (Term.term, bool) Hashtbl.t
+type property =
+  | Prop of Term.term
+  | Safety of Term.term
+  | Liveness of Term.term
+
+type state = (property, bool) Hashtbl.t
 type t
 
 val lsymbol_cache : (string, Term.lsymbol) Hashtbl.t
@@ -13,10 +18,14 @@ val of_states : (string * bool) list list -> int -> t
     (variable name, value) pairs. The [loop_point] indicates the start index of
     the loop within the states list. *)
 
-val get : t -> int -> state
+val get_state : t -> int -> state
 (** [get lasso idx] retrieves the variable assignments at the specified index
     [idx] in the lasso trace. The index counts through the prefix states first,
     followed by the loop states. *)
+
+val get_future_states : t -> int -> state list
+(** [get_future_states lasso idx] returns the list of future states starting
+    from index [idx] in the lasso trace. *)
 
 val get_assignments : t -> (string * bool) list list
 (** [get_assignments lasso] returns the list of state assignments in the lasso

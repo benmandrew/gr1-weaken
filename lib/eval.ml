@@ -1,13 +1,15 @@
 open Core
 open Why3
 
-let rec eval_aux lasso i f =
+let rec eval_on_state_aux state f =
   match f.Term.t_node with
-  | Tbinop (Tand, p, q) -> eval lasso i p && eval lasso i q
-  | Tbinop (Tor, p, q) -> eval lasso i p || eval lasso i q
-  | Tbinop (Timplies, p, q) -> (not @@ eval lasso i p) || eval lasso i q
-  | Tbinop (Tiff, p, q) -> Bool.equal (eval lasso i p) (eval lasso i q)
-  | Tnot p -> not @@ eval lasso i p
+  | Tbinop (Tand, p, q) -> eval_on_state state p && eval_on_state state q
+  | Tbinop (Tor, p, q) -> eval_on_state state p || eval_on_state state q
+  | Tbinop (Timplies, p, q) ->
+      (not @@ eval_on_state state p) || eval_on_state state q
+  | Tbinop (Tiff, p, q) ->
+      Bool.equal (eval_on_state state p) (eval_on_state state q)
+  | Tnot p -> not @@ eval_on_state state p
   | Ttrue -> true
   | Tfalse -> false
   | Tapp (p, []) ->
@@ -17,11 +19,24 @@ let rec eval_aux lasso i f =
       Format.printf "'%a' not supported\n" Pretty.print_term f;
       raise (Not_found_s (Core.Sexp.Atom "Unsupported term in eval"))
 
-and eval lasso i f =
-  let state = Lasso.get lasso i in
-  match Hashtbl.find state f with
+and eval_on_state state f =
+  match Hashtbl.find state (Lasso.Prop f) with
   | Some v -> v
   | None ->
-      let res = eval_aux lasso i f in
-      Hashtbl.set state ~key:f ~data:res;
+      let res = eval_on_state_aux state f in
+      Hashtbl.set state ~key:(Lasso.Prop f) ~data:res;
+      res
+
+let eval lasso i f =
+  let state = Lasso.get_state lasso i in
+  eval_on_state state f
+
+let eval_safety lasso i f =
+  let initial_state = Lasso.get_state lasso i in
+  match Hashtbl.find initial_state (Lasso.Safety f) with
+  | Some v -> v
+  | None ->
+      let states = Lasso.get_future_states lasso i in
+      let res = List.for_all states ~f:(fun state -> eval_on_state state f) in
+      Hashtbl.set initial_state ~key:(Lasso.Safety f) ~data:res;
       res
