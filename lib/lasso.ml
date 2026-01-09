@@ -8,7 +8,7 @@ module Ts = struct
 
   let compare = Term.t_compare
   let sexp_of_t t = Core.Sexp.Atom (Format.asprintf "%a" Pretty.print_term t)
-  let hash = Hashtbl.hash
+  let hash = Term.t_hash
 end
 
 type state = (Term.term, bool) Hashtbl.t
