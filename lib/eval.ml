@@ -2,27 +2,34 @@ open Core
 open Why3
 module Sexp = Sexplib.Sexp
 
-module Ls = struct
-  type t = Why3.Term.lsymbol
+module Ts = struct
+  include Why3.Term
 
-  include Comparator.Make (struct
-    type nonrec t = t
+  type t = term
 
-    let compare = Why3.Term.ls_compare
-    let sexp_of_t _ = Sexp.Atom "lsymbol"
-  end)
+  let compare = Term.t_compare
+  let sexp_of_t t = Sexp.Atom (Format.asprintf "%a" Pretty.print_term t)
+  let hash = Hashtbl.hash
 end
 
-let rec eval a f =
-  match f.Term.t_node with
-  | Tbinop (Tand, p, q) -> eval a p && eval a q
-  | Tbinop (Tor, p, q) -> eval a p || eval a q
-  | Tbinop (Timplies, p, q) -> (not @@ eval a p) || eval a q
-  | Tbinop (Tiff, p, q) -> Bool.equal (eval a p) (eval a q)
-  | Tnot p -> not @@ eval a p
-  | Ttrue -> true
-  | Tfalse -> false
-  | Tapp (p, []) -> Map.find_exn a p
-  | _ ->
-      Format.printf "'%a' not supported\n" Pretty.print_term f;
-      raise (Not_found_s (Sexp.Atom "Unsupported term in eval"))
+let rec eval_aux cache f =
+  if Hashtbl.mem cache f then Hashtbl.find_exn cache f
+  else
+    match f.Term.t_node with
+    | Tbinop (Tand, p, q) -> eval_aux cache p && eval_aux cache q
+    | Tbinop (Tor, p, q) -> eval_aux cache p || eval_aux cache q
+    | Tbinop (Timplies, p, q) -> (not @@ eval_aux cache p) || eval_aux cache q
+    | Tbinop (Tiff, p, q) -> Bool.equal (eval_aux cache p) (eval_aux cache q)
+    | Tnot p -> not @@ eval_aux cache p
+    | Ttrue -> true
+    | Tfalse -> false
+    | Tapp (p, []) ->
+        Format.printf "Proposition '%s' not found\n" p.ls_name.Ident.id_string;
+        raise (Not_found_s (Sexp.Atom "Proposition not found"))
+    | _ ->
+        Format.printf "'%a' not supported\n" Pretty.print_term f;
+        raise (Not_found_s (Sexp.Atom "Unsupported term in eval"))
+
+let eval f =
+  let cache = Hashtbl.create (module Ts) in
+  eval_aux cache f

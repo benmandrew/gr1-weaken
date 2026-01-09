@@ -1,4 +1,3 @@
-open Core
-module Ls : Comparator.S with type t = Why3.Term.lsymbol
+open Why3
 
-val eval : bool Map.M(Ls).t -> Why3.Term.term -> bool
+val eval : Term.term -> bool
