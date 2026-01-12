@@ -15,21 +15,21 @@ let create_prop name =
 
 let%expect_test "eval true on any state" =
   let states = [ [ ("p", true) ] ] in
-  let lasso = Lasso.of_states states 1 in
+  let lasso = Lasso.of_states states 0 in
   let result = Eval.eval lasso 0 Term.t_true in
   printf "eval(T) = %b\n" result;
   [%expect {| eval(T) = true |}]
 
 let%expect_test "eval false on any state" =
   let states = [ [ ("p", true) ] ] in
-  let lasso = Lasso.of_states states 1 in
+  let lasso = Lasso.of_states states 0 in
   let result = Eval.eval lasso 0 Term.t_false in
   printf "eval(F) = %b\n" result;
   [%expect {| eval(F) = false |}]
 
 let%expect_test "eval conjunction (true && true)" =
   let states = [ [ ("p", true); ("q", true) ] ] in
-  let lasso = Lasso.of_states states 1 in
+  let lasso = Lasso.of_states states 0 in
   let p = create_prop "p" in
   let q = create_prop "q" in
   let conj = Term.t_and p q in
@@ -39,7 +39,7 @@ let%expect_test "eval conjunction (true && true)" =
 
 let%expect_test "eval conjunction (true && false)" =
   let states = [ [ ("p", true); ("q", false) ] ] in
-  let lasso = Lasso.of_states states 1 in
+  let lasso = Lasso.of_states states 0 in
   let p = create_prop "p" in
   let q = create_prop "q" in
   let conj = Term.t_and p q in
@@ -49,7 +49,7 @@ let%expect_test "eval conjunction (true && false)" =
 
 let%expect_test "eval disjunction (true || false)" =
   let states = [ [ ("p", true); ("q", false) ] ] in
-  let lasso = Lasso.of_states states 1 in
+  let lasso = Lasso.of_states states 0 in
   let p = create_prop "p" in
   let q = create_prop "q" in
   let disj = Term.t_or p q in
@@ -59,7 +59,7 @@ let%expect_test "eval disjunction (true || false)" =
 
 let%expect_test "eval negation (not true)" =
   let states = [ [ ("p", true) ] ] in
-  let lasso = Lasso.of_states states 1 in
+  let lasso = Lasso.of_states states 0 in
   let p = create_prop "p" in
   let neg = Term.t_not p in
   let result = Eval.eval lasso 0 neg in
@@ -68,7 +68,7 @@ let%expect_test "eval negation (not true)" =
 
 let%expect_test "eval negation (not false)" =
   let states = [ [ ("p", false) ] ] in
-  let lasso = Lasso.of_states states 1 in
+  let lasso = Lasso.of_states states 0 in
   let p = create_prop "p" in
   let neg = Term.t_not p in
   let result = Eval.eval lasso 0 neg in
@@ -77,7 +77,7 @@ let%expect_test "eval negation (not false)" =
 
 let%expect_test "eval implication (true -> true)" =
   let states = [ [ ("p", true); ("q", true) ] ] in
-  let lasso = Lasso.of_states states 1 in
+  let lasso = Lasso.of_states states 0 in
   let p = create_prop "p" in
   let q = create_prop "q" in
   let impl = Term.t_implies p q in
@@ -87,7 +87,7 @@ let%expect_test "eval implication (true -> true)" =
 
 let%expect_test "eval implication (true -> false)" =
   let states = [ [ ("p", true); ("q", false) ] ] in
-  let lasso = Lasso.of_states states 1 in
+  let lasso = Lasso.of_states states 0 in
   let p = create_prop "p" in
   let q = create_prop "q" in
   let impl = Term.t_implies p q in
@@ -97,7 +97,7 @@ let%expect_test "eval implication (true -> false)" =
 
 let%expect_test "eval iff (true <-> true)" =
   let states = [ [ ("p", true); ("q", true) ] ] in
-  let lasso = Lasso.of_states states 1 in
+  let lasso = Lasso.of_states states 0 in
   let p = create_prop "p" in
   let q = create_prop "q" in
   let iff = Term.t_iff p q in
@@ -107,7 +107,7 @@ let%expect_test "eval iff (true <-> true)" =
 
 let%expect_test "eval iff (true <-> false)" =
   let states = [ [ ("p", true); ("q", false) ] ] in
-  let lasso = Lasso.of_states states 1 in
+  let lasso = Lasso.of_states states 0 in
   let p = create_prop "p" in
   let q = create_prop "q" in
   let iff = Term.t_iff p q in
