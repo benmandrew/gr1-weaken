@@ -1,6 +1,6 @@
 open Core
 open Why3
-open Gr1_weaken
+open Ltl_weaken
 
 (* Helper to create a simple variable *)
 let make_var name =

@@ -1,5 +1,5 @@
 open Core
-open Gr1_weaken
+open Ltl_weaken
 
 let%expect_test "SMV parse simple proposition" =
   let term = Parser.Smv.parse_formula "p" in

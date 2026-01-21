@@ -1,5 +1,5 @@
 open Core
-open Gr1_weaken
+open Ltl_weaken
 
 let%expect_test "Parse nuXmv lasso" =
   let xml =

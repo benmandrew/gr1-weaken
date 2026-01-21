@@ -2,12 +2,12 @@
 
 (using menhir 3.0)
 
-(name gr1-weaken)
+(name ltl-weaken)
 
 (generate_opam_files true)
 
 (source
- (github benmandrew/gr1-weaken))
+ (github benmandrew/ltl-weaken))
 
 (authors "Ben M. Andrew <benmandrew@gmail.com>")
 
@@ -18,7 +18,7 @@
 (documentation https://url/to/documentation)
 
 (package
- (name gr1-weaken)
+ (name ltl-weaken)
  (synopsis "A short synopsis")
  (description "A longer description")
  (depends

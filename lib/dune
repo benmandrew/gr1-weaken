@@ -1,7 +1,7 @@
 (include_subdirs qualified)
 
 (library
- (name gr1_weaken)
+ (name ltl_weaken)
  (libraries core core_unix why3 xml-light)
  (preprocess
   (pps ppx_jane)))

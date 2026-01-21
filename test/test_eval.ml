@@ -1,5 +1,5 @@
 open Core
-open Gr1_weaken
+open Ltl_weaken
 open Why3
 
 let create_prop name =

@@ -1,4 +1,4 @@
 (executable
- (public_name gr1-weaken)
+ (public_name ltl-weaken)
  (name main)
- (libraries gr1_weaken cmdliner core))
+ (libraries ltl_weaken cmdliner core))

@@ -1,5 +1,5 @@
 open Core
-open Gr1_weaken
+open Ltl_weaken
 
 (* Command-line interface using cmdliner *)
 let tlsf_file =
@@ -26,7 +26,7 @@ let check_cmd =
   let doc = "Weaken a GR(1) specification to hold on a given SMV model" in
   let man = [ `S Cmdliner.Manpage.s_description; `P (doc ^ ".") ] in
   Cmdliner.Cmd.v
-    (Cmdliner.Cmd.info "gr1-weaken" ~doc ~man)
+    (Cmdliner.Cmd.info "ltl-weaken" ~doc ~man)
     Cmdliner.Term.(const check_tlsf $ tlsf_file $ smv_file)
 
 let () =
