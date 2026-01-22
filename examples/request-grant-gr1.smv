@@ -22,8 +22,9 @@ ASSIGN
       TRUE              : IDLE;
     esac;
 
+JUSTICE !req;                            -- environment justice: req is disabled infinitely often
+
 LTLSPEC G (grant -> (req & !busy));      -- safety: only grant when requested and idle
 LTLSPEC G (grant -> X busy);             -- busy starts after grant
 LTLSPEC G (busy  -> X !busy);            -- busy lasts exactly one step
 LTLSPEC G (req -> F grant);              -- liveness: every request eventually gets a grant
-JUSTICE !req;                            -- environment justice: req is disabled infinitely often
