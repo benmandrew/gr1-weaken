@@ -4,14 +4,14 @@ open Ltl_weaken
 let%expect_test "eval true on any state" =
   let states = [ [ ("p", true) ] ] in
   let lasso = Lasso.of_states states 0 in
-  let result = Eval.eval lasso 0 Ltl.PTrue in
+  let result = Eval.eval lasso 0 (Ltl.Any Ltl.PTrue) in
   printf "eval(T) = %b\n" result;
   [%expect {| eval(T) = true |}]
 
 let%expect_test "eval false on any state" =
   let states = [ [ ("p", true) ] ] in
   let lasso = Lasso.of_states states 0 in
-  let result = Eval.eval lasso 0 Ltl.PFalse in
+  let result = Eval.eval lasso 0 (Ltl.Any Ltl.PFalse) in
   printf "eval(F) = %b\n" result;
   [%expect {| eval(F) = false |}]
 

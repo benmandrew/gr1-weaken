@@ -3,7 +3,7 @@ open Core
 (** Parse SMV propositional formulae into Why3 terms *)
 
 (** Parse a formula string in SMV syntax *)
-let parse_formula (input : string) : Ltl.t =
+let parse_formula (input : string) : Ltl.any_formula =
   let lexbuf = Lexing.from_string input in
   try Smv_parser.formula Smv_lexer.token lexbuf with
   | Smv_parser.Error ->
@@ -17,7 +17,7 @@ let parse_formula (input : string) : Ltl.t =
 
 (** Parse multiple formulae from a single string (comma or semicolon separated)
 *)
-let parse_formulae (input : string) : Ltl.t list =
+let parse_formulae (input : string) : Ltl.any_formula list =
   String.split_on_chars input ~on:[ ','; ';' ]
   |> List.map ~f:String.strip
   |> List.filter ~f:(fun s -> not (String.is_empty s))

@@ -1,26 +1,28 @@
 %{
   (* SMV Parser for propositional formulae *)
-  open Ltl
 
   (* Helper to apply unary operations *)
   let unary_op op arg =
     match op with
-    | "!" -> PNot arg
-    | "G" ->
-        (* For temporal operators, just return the argument for now *)
-        arg
-    | "F" -> arg
-    | "X" -> arg
+    | "!" -> Ltl.p_not arg
+    | "G" -> Ltl.p_globally arg
+    | "F" -> Ltl.p_finally arg
+    | "X" -> Ltl.p_next arg
     | _ -> arg
 
   (* Helper to apply binary operators *)
   let binary_op op left right =
     match op with
-    | "&" -> PAnd [left; right]
-    | "|" -> POr [left; right]
-    | "->" -> PImply (left, right)
-    | "<->" -> PIff (left, right)
+    | "&" -> Ltl.p_and [left; right]
+    | "|" -> Ltl.p_or [left; right]
+    | "->" -> Ltl.p_imply left right
+    | "<->" -> Ltl.p_iff left right
+    | "U" -> Ltl.p_until left right
+    | "R" -> Ltl.p_release left right
+    | "W" -> Ltl.p_release left right  (* W is weak until, not implemented *)
     | _ -> left
+
+
 %}
 
 /* Terminal symbols */
@@ -36,7 +38,7 @@
 
 /* Start symbol */
 %start formula
-%type <Ltl.t> formula
+%type <Ltl.any_formula> formula
 
 /* Operator precedence and associativity (low to high) */
 %left IFF
@@ -81,7 +83,7 @@ expr:
   | primary             { $1 }
 
 primary:
-  | TRUE                { PTrue }
-  | FALSE               { PFalse }
-  | IDENT               { PAtom $1 }
+  | TRUE                { Ltl.Any PTrue }
+  | FALSE               { Ltl.Any PFalse }
+  | IDENT               { Ltl.Any (PAtom $1) }
   | LPAREN expr RPAREN  { $2 }
