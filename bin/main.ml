@@ -9,11 +9,10 @@ let check_smv smv_path =
   let spec = Parser.Parse_smv.parse_smv_file smv_path in
   match Nuxmv.check smv_path spec with
   | Nuxmv.Valid -> printf "Specification is VALID\n"
-  | Nuxmv.Invalid xml ->
+  | Nuxmv.Invalid cexs ->
       printf "Specification is INVALID\n";
-      let lasso = Cex.parse xml in
-      List.iter ~f:(fun p -> Eval.eval lasso 0 p |> ignore) spec;
-      Lasso.print lasso
+      List.iter ~f:(fun p -> Eval.eval (List.hd_exn cexs) 0 p |> ignore) spec;
+      Lasso.print (List.hd_exn cexs)
   | Nuxmv.Error msg -> printf "Error during verification:\n%s\n" msg
 
 let check_cmd =

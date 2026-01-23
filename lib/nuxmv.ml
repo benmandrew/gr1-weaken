@@ -1,6 +1,6 @@
 open Core
 
-type check_result = Valid | Invalid of string | Error of string
+type check_result = Valid | Invalid of Lasso.t list | Error of string
 
 let model_filename = "model.smv"
 let trace_filename = "trace.xml"
@@ -12,7 +12,7 @@ let commands =
     "set counter_examples 1";
     "go";
     "check_ltlspec";
-    "show_traces -p 4 -o \"" ^ trace_filename ^ "\"";
+    "show_traces -a -p 4 -o \"" ^ trace_filename ^ "\"";
     "quit";
   ]
 
@@ -50,11 +50,8 @@ let write_model ~tmp_dir model_path spec =
       Out_channel.output_string oc without_ltlspecs;
       List.iter
         ~f:(fun (Ltl.Any p) ->
-          Out_channel.output_string oc ("LTLSPEC " ^ Ltl.to_string p ^ "\n"))
+          Out_channel.output_string oc ("\nLTLSPEC " ^ Ltl.to_string p ^ ";"))
         spec)
-
-let read_file_if_exists path =
-  try Some (In_channel.read_all path) with Sys_error _ -> None
 
 let environment = Core_unix.environment ()
 
@@ -75,20 +72,29 @@ let run_nuxmv ~tmp_dir =
   with e ->
     Error (127, "", sprintf "Failed to run nuXmv: %s" (Exn.to_string e))
 
+let read_counterexamples ~tmp_dir =
+  Core_unix.ls_dir_detailed tmp_dir
+  |> List.filter_map ~f:(fun d ->
+      if String.is_suffix d.name ~suffix:trace_filename then Some d.name
+      else None)
+  |> List.map ~f:(fun filename ->
+      let path = Filename.concat tmp_dir filename in
+      In_channel.read_all path |> Cex.parse)
+
+let counterexample_exists nuxmv_output =
+  let lines = String.split_lines nuxmv_output in
+  List.exists lines ~f:(fun line ->
+      String.is_substring line ~substring:"-- specification"
+      && String.is_substring line ~substring:"is false")
+
 let check model_path spec =
   let tmp_dir = get_tmp_dir () in
   write_commands ~tmp_dir;
   write_model ~tmp_dir model_path spec;
   match run_nuxmv ~tmp_dir with
-  | Ok (out, _err) -> (
-      if
-        String.is_substring out ~substring:"-- specification"
-        && String.is_substring out ~substring:"is true"
-      then Valid
-      else
-        match read_file_if_exists (Filename.concat tmp_dir trace_filename) with
-        | Some xml -> Invalid xml
-        | None -> Invalid out)
+  | Ok (out, _err) ->
+      if counterexample_exists out then Invalid (read_counterexamples ~tmp_dir)
+      else Valid
   | Error (status, out, err) ->
       Error
         (sprintf "nuXmv failed (exit %d). stdout:\n%s\nstderr:\n%s" status out
